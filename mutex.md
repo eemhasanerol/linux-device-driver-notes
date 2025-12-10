@@ -90,20 +90,25 @@ mutex_init(&data->mutex);
 Mutex edinmek (kilitlemek) için 3 temel fonksiyon vardır. Hangi fonksiyonu seçtiğiniz, task'ın bekleme esnasında nasıl davranacağını belirler.
 **A. mutex_lock(&lock)**
 Task'ı kesintiye uğratılamaz (uninterruptible) bir uykuya sokar (TASK_UNINTERRUPTIBLE).Risk: Kilit bir sebepten asla açılmazsa, task sonsuza kadar donar. KILL sinyali bile işe yaramaz. Sadece kilit kısa süre tutulacaksa önerilir.
+
 **B. mutex_lock_interruptible(&lock) (Önerilen ✅)**
 Task'ı kesintiye uğratılabilir (interruptible) bir uykuya sokar.Task uyurken bir sinyal (örneğin kullanıcının Ctrl+C yapması) gelirse uyanır.Dönüş Değeri: Fonksiyon -EINTR dönerse, kilit alınamamış ve işlem bölünmüş demektir.
+
 **C. mutex_lock_killable(&lock)**
 Sadece task'ı gerçekten öldüren (fatal) sinyaller gelirse uyanır.Özet Tablo:FonksiyonUyku TürüSinyal Gelirse Ne Olur?mutex_lockUninterruptibleUyanmaz (Donar)mutex_lock_interruptibleInterruptibleUyanır (-EINTR döner)mutex_lock_killableKillableSadece ölürse uyanır
+
 ## 6. Kilit Açma ve Durum KontrolüKilidi açmak için tek bir fonksiyon vardır ve sadece kilidi alan (sahibi) çağırabilir:Cvoid mutex_unlock(struct mutex *lock);
 Mutex'in o an kilitli olup olmadığını kontrol etmek için (örneğin debug amaçlı):C// Kilitliyse true, değilse false döner
 static bool mutex_is_locked(struct mutex *lock);
+
 ## 7. Mutex Altın Kuralları (YASAKLAR) 
 🚫include/linux/mutex.h dosyasında belirtilen ve uyulması zorunlu kurallar şunlardır:
-Tek Sahip: Aynı anda sadece bir task mutex'i tutabilir.
-Sadece Sahibi Açabilir: Kilidi kim aldıysa o bırakmalıdır. Başka bir task kilidi açamaz.
-Recursive (Yinelemeli) Kilit Yasak: Kilidi almışken tekrar almaya çalışmak yasaktır (Deadlock sebebi).
-IRQ İçinde Yasak: Mutex'ler donanım veya yazılım interrupt (kesme) bağlamlarında (Timer, Tasklet vb.) ASLA kullanılamaz. Çünkü interrupt handler uyuyamaz.Exit Yasağı: Task, mutex'i tutarken sonlanamaz (exit).
-Bellek Yasağı: Kilitli bir mutex'in bulunduğu bellek alanı (kfree) serbest bırakılamaz.8. Try-Lock Metodu (Beklemesiz Deneme)Bazen "Kilidi alabilirsem alayım, alamazsam bekleyip uyumayayım, yoluma devam edeyim" dediğimiz durumlar olur. Buna Try-Lock denir.Amaç: Kilit doluysa vakit kaybetmemek.Davranış: Asla uyumaz.Dönüş Değeri:1: Başarılı (Kilit alındı).0: Başarısız (Kilit dolu, ama uyumadı).Örnek Kullanım:
+-Tek Sahip: Aynı anda sadece bir task mutex'i tutabilir.
+-Sadece Sahibi Açabilir: Kilidi kim aldıysa o bırakmalıdır. Başka bir task kilidi açamaz.
+-Recursive (Yinelemeli) Kilit Yasak: Kilidi almışken tekrar almaya çalışmak yasaktır (Deadlock sebebi).
+-IRQ İçinde Yasak: Mutex'ler donanım veya yazılım interrupt (kesme) bağlamlarında (Timer, Tasklet vb.) ASLA kullanılamaz. Çünkü interrupt handler uyuyamaz.Exit Yasağı: Task, mutex'i tutarken sonlanamaz (exit).
+-Bellek Yasağı: Kilitli bir mutex'in bulunduğu bellek alanı (kfree) serbest bırakılamaz.8. Try-Lock Metodu (Beklemesiz Deneme)Bazen "Kilidi alabilirsem alayım, alamazsam bekleyip uyumayayım, yoluma devam edeyim" dediğimiz durumlar olur. Buna Try Lock denir.Amaç: Kilit doluysa vakit kaybetmemek.Davranış: Asla uyumaz.Dönüş Değeri:1: Başarılı (Kilit alındı).0: Başarısız (Kilit dolu, ama uyumadı).Örnek Kullanım:
+
 C
 if (!mutex_trylock(&bar_mutex)) {
     /* Başarısız! Mutex zaten kilitli.
