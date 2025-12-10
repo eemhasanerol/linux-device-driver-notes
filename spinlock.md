@@ -365,3 +365,6 @@ Spinlock = SMP sistemlerde temel güvenlik mekanizmasıdır.
 
 ---
 
+
+
+
