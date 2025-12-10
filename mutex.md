@@ -129,13 +129,14 @@ Linux kernel’in `include/linux/mutex.h` dosyasında belirtilen zorunlu kuralla
   Mutex tutuluyorken mutex'in bulunduğu bellek (`kfree`) serbest bırakılamaz.
 
 
-C
+```c
 if (!mutex_trylock(&bar_mutex)) {
     /* Başarısız! Mutex zaten kilitli.
      * Burada uyumuyoruz, hemen başka işlere bakıyoruz.
      */
     return -EBUSY;
 }
+```
 
 /* Buraya geldiysek kilidi başarıyla aldık demektir */
 // ... kritik işlemler ...
