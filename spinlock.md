@@ -104,6 +104,47 @@ Spinlock, işte bu atomik talimatlar üzerine kuruludur.
 
 **Spinlock = Donanım destekli atomik kilit**
 
+### 🧩 Atomic Olmayan İşlemin Assembly Seviyesinde Yarattığı Sorun
+
+C’de tek satır olan:
+
+```c
+counter = counter + 1;
+```
+
+CPU tarafından üç ayrı işlem olarak yapılır:
+
+1. LOAD  → counter’ı oku  
+2. ADD   → 1 ekle  
+3. STORE → sonucu yaz  
+
+Bu adımlar atomik değildir.
+
+Aynı kodu iki task aynı anda yürütürse:
+
+#### Task A:
+```asm
+LOAD R1, [counter]   ; R1 = 5
+ADD  R1, #1          ; R1 = 6
+```
+
+#### CPU context switch → Task B çalışır:
+```asm
+LOAD R2, [counter]   ; R2 = 5   ← yarışma burada başlar
+ADD  R2, #1          ; R2 = 6
+STORE [counter], R2  ; counter = 6
+```
+
+#### CPU tekrar Task A’ya döner:
+```asm
+STORE [counter], R1  ; counter = 6 (artış kaybolur)
+```
+
+**Beklenen sonuç:** 7  
+**Gerçek sonuç:** 6
+
+Bu, race condition’ın en temel örneğidir ve spinlock’un gerekliliğini kanıtlar.
+
 ---
 
 ## 6. Spinlock Nedir? (Basit Tanım)
