@@ -11,3 +11,15 @@ Bilgisayarda da aynı şey olur. Örneğin iki işlem aynı anda:
 
 ```c
 counter = counter + 1;
+
+satırını çalıştırmak isterse sonuç bozulabilir. Çünkü bu işlem aslında üç adımdan oluşur:
+
+Değeri oku
+
+1 ekle
+
+Yeni değeri geri yaz
+
+İki işlem bu adımları aynı anda yürütürse adımlar karışır ve race condition ortaya çıkar.
+
+Bu nedenle paylaşılan veriyi korumak için lock (kilit) mekanizmasına ihtiyaç vardır.
