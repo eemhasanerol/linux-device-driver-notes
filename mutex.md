@@ -105,13 +105,29 @@ Sadece task'ı gerçekten öldüren (fatal) sinyaller gelirse uyanır.Özet Tabl
 Mutex'in o an kilitli olup olmadığını kontrol etmek için (örneğin debug amaçlı):C// Kilitliyse true, değilse false döner
 static bool mutex_is_locked(struct mutex *lock);
 
-## 7. Mutex Altın Kuralları (YASAKLAR) 
-🚫include/linux/mutex.h dosyasında belirtilen ve uyulması zorunlu kurallar şunlardır:
--Tek Sahip: Aynı anda sadece bir task mutex'i tutabilir.
--Sadece Sahibi Açabilir: Kilidi kim aldıysa o bırakmalıdır. Başka bir task kilidi açamaz.
--Recursive (Yinelemeli) Kilit Yasak: Kilidi almışken tekrar almaya çalışmak yasaktır (Deadlock sebebi).
--IRQ İçinde Yasak: Mutex'ler donanım veya yazılım interrupt (kesme) bağlamlarında (Timer, Tasklet vb.) ASLA kullanılamaz. Çünkü interrupt handler uyuyamaz.Exit Yasağı: Task, mutex'i tutarken sonlanamaz (exit).
--Bellek Yasağı: Kilitli bir mutex'in bulunduğu bellek alanı (kfree) serbest bırakılamaz.8. Try-Lock Metodu (Beklemesiz Deneme)Bazen "Kilidi alabilirsem alayım, alamazsam bekleyip uyumayayım, yoluma devam edeyim" dediğimiz durumlar olur. Buna Try Lock denir.Amaç: Kilit doluysa vakit kaybetmemek.Davranış: Asla uyumaz.Dönüş Değeri:1: Başarılı (Kilit alındı).0: Başarısız (Kilit dolu, ama uyumadı).Örnek Kullanım:
+## 7. Mutex Altın Kuralları (YASAKLAR)
+
+Linux kernel’in `include/linux/mutex.h` dosyasında belirtilen zorunlu kurallar:
+
+- **Tek Sahip:**  
+  Aynı anda sadece bir task mutex’i tutabilir.
+
+- **Sadece Sahibi Açabilir:**  
+  Mutex’i kim aldıysa yalnızca o bırakabilir.
+
+- **Recursive Kilit Yasak:**  
+  Bir task mutex’i tutarken aynı mutex’i tekrar almaya çalışamaz (deadlock oluşur).
+
+- **IRQ İçinde Kullanım Yasak:**  
+  Mutex, IRQ handler, softirq, tasklet veya timer context içinde kullanılamaz.  
+  Çünkü interrupt context **uyuyamaz**, mutex ise beklerken uykuya geçer.
+
+- **Exit Yasağı:**  
+  Bir task mutex’i tutarken exit edemez.
+
+- **Bellek Serbest Bırakma Yasağı:**  
+  Mutex tutuluyorken mutex'in bulunduğu bellek (`kfree`) serbest bırakılamaz.
+
 
 C
 if (!mutex_trylock(&bar_mutex)) {
