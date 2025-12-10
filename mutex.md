@@ -77,6 +77,7 @@ static DEFINE_MUTEX(my_mutex);
 ```
 **B. Dinamik Tanımlama (Çalışma zamanı):**
 Genellikle kmalloc ile ayrılan veri yapıları içindeki mutexler için kullanılır (örneğin bir probe fonksiyonu içinde).
+
 ```c
 struct fake_data {
     struct mutex mutex;
@@ -84,6 +85,7 @@ struct fake_data {
 // ... probe fonksiyonu içinde ...
 mutex_init(&data->mutex);
 ```
+
 ## 5. Kilitleme Fonksiyonları ve Farkları (Locking)
 Mutex edinmek (kilitlemek) için 3 temel fonksiyon vardır. Hangi fonksiyonu seçtiğiniz, task'ın bekleme esnasında nasıl davranacağını belirler.
 **A. mutex_lock(&lock)**
