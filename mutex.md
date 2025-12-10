@@ -88,16 +88,14 @@ mutex_init(&data->mutex);
 
 ## 5. Kilitleme Fonksiyonları ve Farkları (Locking)
 Mutex edinmek (kilitlemek) için 3 temel fonksiyon vardır. Hangi fonksiyonu seçtiğiniz, task'ın bekleme esnasında nasıl davranacağını belirler.
-**A. mutex_lock(&lock)**
 
+**A. mutex_lock(&lock)**
 Task'ı kesintiye uğratılamaz (uninterruptible) bir uykuya sokar (TASK_UNINTERRUPTIBLE).Risk: Kilit bir sebepten asla açılmazsa, task sonsuza kadar donar. KILL sinyali bile işe yaramaz. Sadece kilit kısa süre tutulacaksa önerilir.
 
 **B. mutex_lock_interruptible(&lock) (Önerilen ✅)**
-
 Task'ı kesintiye uğratılabilir (interruptible) bir uykuya sokar.Task uyurken bir sinyal (örneğin kullanıcının Ctrl+C yapması) gelirse uyanır.Dönüş Değeri: Fonksiyon -EINTR dönerse, kilit alınamamış ve işlem bölünmüş demektir.
 
 **C. mutex_lock_killable(&lock)**
-
 Sadece task'ı gerçekten öldüren (fatal) sinyaller gelirse uyanır.Özet Tablo:FonksiyonUyku TürüSinyal Gelirse Ne Olur?mutex_lockUninterruptibleUyanmaz (Donar)mutex_lock_interruptibleInterruptibleUyanır (-EINTR döner)mutex_lock_killableKillableSadece ölürse uyanır
 
 ## 6. Kilit Açma ve Durum KontrolüKilidi açmak için tek bir fonksiyon vardır ve sadece kilidi alan (sahibi) çağırabilir:Cvoid mutex_unlock(struct mutex *lock);
