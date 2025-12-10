@@ -11,14 +11,13 @@ Bilgisayarda da aynı şey olur. Örneğin iki işlem aynı anda:
 
 ```c
 counter = counter + 1;
+```
 
 satırını çalıştırmak isterse sonuç bozulabilir. Çünkü bu işlem aslında üç adımdan oluşur:
 
-Değeri oku
-
-1 ekle
-
-Yeni değeri geri yaz
+1. Değeri oku  
+2. 1 ekle  
+3. Yeni değeri geri yaz  
 
 İki işlem bu adımları aynı anda yürütürse adımlar karışır ve race condition ortaya çıkar.
 
