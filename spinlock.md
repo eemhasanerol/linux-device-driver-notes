@@ -1,9 +1,7 @@
-# Spinlocks – Öğretici Anlatım
+# Spinlocks Notes
 
-Bu doküman, çekirdek programlamada spinlock kavramını **sıfırdan**, **basit**, **teknik olarak doğru** ve **adım adım öğretici** bir şekilde açıklamak amacıyla hazırlanmıştır.
 
 ---
-
 ## 1. Başlangıç: Paylaşılan Veri Sorunu (Neden Lock Var?)
 
 Bir bilgisayarda birden fazla işlem aynı anda çalışabilir.
