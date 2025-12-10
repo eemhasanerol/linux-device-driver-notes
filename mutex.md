@@ -25,6 +25,7 @@ struct mutex {
     spinlock_t wait_lock;       // Bekleme Listesi Kilidi
     struct list_head wait_list; // Bekleme Listesi
 };
+```c
 Bu yapıdaki elemanların görevleri kritik önem taşır:
 
 owner: Kilidi fiilen o an elinde tutan işlemi (process) temsil eder.
