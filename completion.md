@@ -79,7 +79,7 @@ void my_function(void) {
     wait_for_completion(&setup_done);
 }
 ```
-B. Dinamik Tanımlama (Struct İçinde - Heap)
+### B. Dinamik Tanımlama (Struct İçinde - Heap)
 Mantık: "Bilgisayara aynı USB cihazından 5 tane takılabilir. Her cihazın KENDİNE ÖZEL bekleme bayrağı olmalı."
 
 Eğer global değişken kullanırsanız, 1. cihazın işi bittiğinde yanlışlıkla 2. cihazı bekleyen kodu uyandırır. Bu yüzden her cihazın kendi veri yapısı (struct) içinde, kendine özel bir completion olmalıdır.
@@ -110,7 +110,7 @@ static int my_probe(struct platform_device *pdev)
     return 0;
 }
 ```
-C. Stack Üzerinde Tanımlama (Fonksiyon İçi - Yerel)
+### C. Stack Üzerinde Tanımlama (Fonksiyon İçi - Yerel)
 Mantık: "Bu çok kısa bir iş. Fonksiyonun içinde birini bekleyeceğim, iş bitince de bu değişkenle işim kalmayacak, hemen silinsin."
 
 Ne Zaman Kullanılır: Hızlı, tek seferlik ve fonksiyon dışına çıkmayacak beklemelerde.
