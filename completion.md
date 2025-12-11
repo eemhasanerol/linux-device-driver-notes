@@ -137,3 +137,57 @@ void my_temp_function(void)
 }
 ```
 
+
+## 5. Temel API Fonksiyonları (The Arsenal)
+
+Bir completion nesnesi ile yapabileceğiniz 4 temel işlem vardır: **Bekleme**, **Haber Verme**, **Sıfırlama** ve **Kontrol Etme**.
+
+### A. Bekleme Fonksiyonları (Waiting)
+Bu fonksiyonları çağıran kod (Thread), sinyal gelene kadar işlemciyi bırakır ve **UYUR** (Block).
+
+| Fonksiyon | Açıklama ve Kullanım Yeri |
+| :--- | :--- |
+| `wait_for_completion(&x)` | **⚠️ Riskli:** Sonsuza kadar bekler. Eğer donanım bozulur ve cevap vermezse, bu process "Zombi" olur (`kill -9` ile bile ölmez). Sadece kesinlikle güvenilen kısa işlerde kullanılmalı. |
+| `wait_for_completion_interruptible(&x)` | **Kullanıcı Dostu:** Beklerken `Ctrl+C` gibi sinyallerle uyandırılabilir. Eğer sinyal ile bölünürse `-ERESTARTSYS` döner. |
+| `wait_for_completion_timeout(&x, timeout)` | **✅ En Güvenlisi:** Belirtilen süre (`timeout`) dolarsa, iş bitmese bile uyanır. Donanım sürücülerinde (I2C, SPI, DMA) **mutlaka bu kullanılmalıdır.** |
+| `wait_for_completion_killable(&x)` | Sadece süreci öldüren (fatal) sinyallerle uyanır. |
+
+> **Timeout Kullanımı İçin Örnek:**
+> `timeout` parametresi "Jiffies" (Zaman dilimi) cinsindendir. Saniye cinsinden vermek için `msecs_to_jiffies()` kullanın.
+
+```c
+unsigned long kalan_zaman;
+// 3 Saniye bekle
+kalan_zaman = wait_for_completion_timeout(&dev->done, msecs_to_jiffies(3000));
+
+if (kalan_zaman == 0) {
+    printk("HATA: Donanım cevap vermedi (Timeout)!\n");
+    return -ETIMEDOUT;
+}
+// Başarılı: kalan_zaman > 0
+```
+
+### B. Haber Verme Fonksiyonları (Signaling)
+Bu fonksiyonlar, kuyrukta uyuyan kodları UYANDIRIR. Genellikle Interrupt (IRQ) Handler içinden çağrılır.
+complete(&x): Kuyrukta bekleyen sadece bir task'ı uyandırır. done sayacını 1 artırır. %99 durumda bunu kullanacaksınız.
+complete_all(&x): Bu olayı bekleyen herkesi (tüm threadleri) aynı anda uyandırır. done sayacını UINT_MAX yapar. ### C. Sıfırlama (Re-Initialization)
+Completion mekanizması varsayılan olarak "tek atımlık" (One-shot) çalışır. İşlem bir kez complete() edildiğinde done sayacı artar (Örn: 1 olur).Eğer aynı değişkeni bir döngü içinde tekrar kullanacaksanız (örneğin sürekli veri paketi yolluyorsanız), her turda sayacı sıfırlamanız gerekir. Aksi takdirde wait fonksiyonu "Bu zaten bitmiş" der ve beklemeden geçer.C// done bayrağını tekrar 0 yapar.
+
+```c
+// DİKKAT: Bunu yaparken başka bir thread'in beklemediğinden emin olun (Race Condition).
+reinit_completion(&dev->done);
+```
+
+### D. Beklemesiz Kontrol (Non-Blocking Check)Bazen "Uyuma lüksüm yok, sadece bitmiş mi diye bakıp çıkacağım" dersinizC// Eğer iş bittiyse (done > 0) true döner ve hakkı kullanır (done--).
+```c
+// Eğer iş bitmediyse, UYUMAZ, hemen false döner.
+if (try_wait_for_completion(&dev->done)) {
+    // İş bitmiş, devam et
+} else {
+    // İş bitmemiş, bekleyemem, başka işe bakayım
+}
+```
+```c
+C// Sadece durumu kontrol eder, hiçbir şeyi değiştirmez (done değerine dokunmaz).
+bool bitti_mi = completion_done(&dev->done);
+```
