@@ -3,9 +3,6 @@
 ## 1. Giriş: Completion Nedir?
 
 **Completion**, bir veya daha fazla iş parçacığının (thread), çekirdek içindeki bir aktivitenin belirli bir noktaya veya duruma gelmesini **beklemesi** gerektiğinde kullanılan mekanizmadır.
-
-Anlamsal olarak `pthread_barrier()` yapısına benzer.
-
 > **Temel Amaç:** Race Condition riski olmadan, bir işin bitmesini beklemektir.
 
 ---
