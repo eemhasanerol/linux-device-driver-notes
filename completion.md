@@ -169,13 +169,15 @@ if (kalan_zaman == 0) {
 
 ### B. Haber Verme Fonksiyonları (Signaling)
 Bu fonksiyonlar, kuyrukta uyuyan kodları UYANDIRIR. Genellikle Interrupt (IRQ) Handler içinden çağrılır.
-complete(&x): Kuyrukta bekleyen sadece bir task'ı uyandırır. done sayacını 1 artırır. %99 durumda bunu kullanacaksınız.
-complete_all(&x): Bu olayı bekleyen herkesi (tüm threadleri) aynı anda uyandırır. done sayacını UINT_MAX yapar. ### C. Sıfırlama (Re-Initialization)
-Completion mekanizması varsayılan olarak "tek atımlık" (One-shot) çalışır. İşlem bir kez complete() edildiğinde done sayacı artar (Örn: 1 olur).Eğer aynı değişkeni bir döngü içinde tekrar kullanacaksanız (örneğin sürekli veri paketi yolluyorsanız), her turda sayacı sıfırlamanız gerekir. Aksi takdirde wait fonksiyonu "Bu zaten bitmiş" der ve beklemeden geçer.C// done bayrağını tekrar 0 yapar.
 
+complete(&x): Kuyrukta bekleyen sadece bir task'ı uyandırır. done sayacını 1 artırır. %99 durumda bunu kullanacaksınız.
+
+complete_all(&x): Bu olayı bekleyen herkesi (tüm threadleri) aynı anda uyandırır. done sayacını UINT_MAX yapar. ### C. Sıfırlama (Re-Initialization)
+
+Completion mekanizması varsayılan olarak "tek atımlık" (One-shot) çalışır. İşlem bir kez complete() edildiğinde done sayacı artar (Örn: 1 olur).Eğer aynı değişkeni bir döngü içinde tekrar kullanacaksanız (örneğin sürekli veri paketi yolluyorsanız), her turda sayacı sıfırlamanız gerekir. Aksi takdirde wait fonksiyonu "Bu zaten bitmiş" der ve beklemeden geçer.
 ```c
 // DİKKAT: Bunu yaparken başka bir thread'in beklemediğinden emin olun (Race Condition).
-reinit_completion(&dev->done);
+reinit_completion(&dev->done); // done bayrağını tekrar 0 yapar.
 ```
 
 ### C. (Non-Blocking Check)
