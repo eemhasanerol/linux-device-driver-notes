@@ -1,4 +1,4 @@
-# Linux Kernel Completions (Tamamlanma Bekleyicileri)
+# Linux Kernel Completions
 
 ## 1. Giriş: Completion Nedir?
 
