@@ -1,0 +1,47 @@
+# Linux Kernel: Wait Queue (Bekleme Kuyruğu)
+
+### 1. Wait Queue Nedir?
+
+Wait Queue, Linux çekirdeğinde bir işlemin beklediği olay (örneğin veri gelmesi) gerçekleşene kadar **uyutularak** bekletildiği yapıdır.
+
+Bu mekanizmanın temel amacı **işlemciyi (CPU) boşuna yormamaktır.**
+
+Bir veriyi beklerken işlemciye sürekli *"Geldi mi?"* diye sormak (Polling) yerine; sisteme *"Veri gelince beni uyandır"* komutu verilir ve işlem uyku moduna alınır. Böylece işlemci, bekleme süresince boşa dönmez ve diğer işlerle ilgilenebilir.
+
+### 2. Nasıl Çalışır? (Arka Plan)
+
+1.  **Uykuya Geçiş:** Sürücü kodu `wait_event` fonksiyonunu çağırdığında, işletim sistemi bu görevi "Çalışanlar" listesinden çıkarıp "Uyuyanlar" listesine taşır.
+2.  **Donma Anı:** Görev, işlemci üzerindeki hakkından vazgeçer (`schedule` çağrısı). Kod, tam olarak `wait_event` satırında donar ve asılı kalır.
+3.  **Uyandırma:** Beklenen olay (örneğin donanım kesmesi/interrupt) gerçekleştiğinde, sürücünün diğer yarısı `wake_up` fonksiyonunu çağırır.
+4.  **Devam Etme:** Uyanan görev kaldığı yerden değil, **şartı tekrar kontrol ederek** çalışmaya devam eder.
+
+### 3. Kod Şablonu
+
+Bu mekanizma, veriyi bekleyen (Process Context) ve veriyi sağlayan (Interrupt Context) iki tarafın işbirliğiyle çalışır.
+
+**Tanımlama:**
+```c
+DECLARE_WAIT_QUEUE_HEAD(my_queue); // Bekleme odası
+int data_ready = 0;                // Şart bayrağı (Flag)
+```
+
+#### A. Uyuyan Taraf (Driver Read Fonksiyonu)
+
+```c
+/* Veri 1 olana kadar uyu. CPU harcama. */
+/* interruptible: Sinyal gelirse (CTRL+C) uyanabilmesini sağlar. */
+if (wait_event_interruptible(my_queue, (data_ready == 1))) {
+    return -ERESTARTSYS; // Zorla uyandırıldık (Sinyal ile), işlemi iptal et.
+}
+
+// Buraya kod indiyse; uyanmışız ve veri hazır demektir.
+data_ready = 0; // Veriyi al ve bayrağı indir.
+```
+
+#### B. Uyuyan Taraf (Driver Read Fonksiyonu)
+
+```c
+/* Donanım işini bitirdi, veriyi koydu. */
+data_ready = 1;                   // 1. Önce şartı sağla
+wake_up_interruptible(&my_queue); // 2. Sonra uyuyanları dürt
+```
