@@ -90,8 +90,6 @@ Hafıza Bölgesi: Heap (kmalloc ile ayrılan alan).
 
 Ömür: Cihaz takıldığında (probe) başlar, çıkarıldığında (remove) biter.
 
-C
-
 struct my_device_data {
     int id;
     struct completion op_done; // Her cihazın kendi özel bayrağı
@@ -119,8 +117,6 @@ Hafıza Bölgesi: Stack (Yığın).
 Ömür: Sadece o fonksiyonun süslü parantezleri { } arasında yaşar.
 
 ⚠️ KRİTİK TEHLİKE: Eğer donanım işini bitirmeden (complete çağırmadan) bu fonksiyon return ederse, değişken hafızadan silinir. Donanım daha sonra silinmiş hafızaya yazmaya çalışırsa Kernel Panic oluşur. Bu yüzden _ONSTACK makrosu ile sisteme haber vermek zorunludur.
-
-C
 
 void my_temp_function(void)
 {
