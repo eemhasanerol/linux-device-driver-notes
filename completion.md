@@ -178,7 +178,8 @@ Completion mekanizması varsayılan olarak "tek atımlık" (One-shot) çalışı
 reinit_completion(&dev->done);
 ```
 
-### D. Beklemesiz Kontrol (Non-Blocking Check)Bazen "Uyuma lüksüm yok, sadece bitmiş mi diye bakıp çıkacağım" dersinizC// Eğer iş bittiyse (done > 0) true döner ve hakkı kullanır (done--).
+### D. (Non-Blocking Check)
+Bazen "Uyuma lüksüm yok, sadece bitmiş mi diye bakıp çıkacağım" dersinizC// Eğer iş bittiyse (done > 0) true döner ve hakkı kullanır (done--).
 ```c
 // Eğer iş bitmediyse, UYUMAZ, hemen false döner.
 if (try_wait_for_completion(&dev->done)) {
