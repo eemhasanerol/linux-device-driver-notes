@@ -167,7 +167,7 @@ if (kalan_zaman == 0) {
 // Başarılı: kalan_zaman > 0
 ```
 
-### B. Haber Verme Fonksiyonları (Signaling)
+### B. Haber Verme Fonksiyonları
 Bu fonksiyonlar, kuyrukta uyuyan kodları UYANDIRIR. Genellikle Interrupt (IRQ) Handler içinden çağrılır.
 
 complete(&x): Kuyrukta bekleyen sadece bir task'ı uyandırır. done sayacını 1 artırır. %99 durumda bunu kullanacaksınız.
@@ -181,7 +181,7 @@ reinit_completion(&dev->done); // done bayrağını tekrar 0 yapar.
 ```
 
 ### C. (Non-Blocking Check)
-Bazen "Uyuma lüksüm yok, sadece bitmiş mi diye bakıp çıkacağım" dersinizC// Eğer iş bittiyse (done > 0) true döner ve hakkı kullanır (done--).
+Bazen "Uyuma lüksüm yok, sadece bitmiş mi diye bakıp çıkacağım" dersiniz
 ```c
 // Eğer iş bitmediyse, UYUMAZ, hemen false döner.
 if (try_wait_for_completion(&dev->done)) {
@@ -195,7 +195,7 @@ C// Sadece durumu kontrol eder, hiçbir şeyi değiştirmez (done değerine doku
 bool bitti_mi = completion_done(&dev->done);
 ```
 
-## 6. Derinlemesine Analiz: Kaputun Altında Ne Oluyor? (Under the Hood)
+## 6. Derinlemesine Analiz: Kaputun Altında Ne Oluyor?
 
 Biz `wait_for_completion` çağırdığımızda kodun "sihirli bir şekilde" durduğunu görüyoruz. Peki, Kernel arka planda bunu fiziksel olarak nasıl yapıyor?
 
@@ -212,7 +212,7 @@ void wait_for_completion(struct completion *x)
 {
     // 1. KENDİNİ TANIT
     // "current" = Şu an çalışan process (Bizim kodumuz).
-    // Kendimizi bir "bekleyen" (waiter) olarak paketliyoruz.
+    // Kendimizi bir waiter olarak paketliyoruz.
     DECLARE_WAITQUEUE(wait, current);
 
     // 2. KUYRUĞA GİR
@@ -238,9 +238,7 @@ void wait_for_completion(struct completion *x)
         // 6. İŞLEMCİYİ BIRAK (EN KRİTİK NOKTA)
         // Bu fonksiyon çağrıldığı an, CPU bizim kodumuzdan ÇIKAR.
         // Başka bir programa (Wifi, Müzik, vs.) geçer.
-        // -------------------------------------------------------
-        // FİZİKSEL OLARAK BURADA DONARIZ.
-        // -------------------------------------------------------
+        // Fiziksel olarak burada donarız.
         schedule(); 
         
         // 7. UYANIŞ
@@ -260,7 +258,6 @@ void wait_for_completion(struct completion *x)
 ### B. complete() İçinde Ne Var?
 Bu fonksiyonun görevi basittir: Birini uyandırmak.
 
-
 ```c
 void complete(struct completion *x)
 {
@@ -274,7 +271,7 @@ void complete(struct completion *x)
     // "İş bitti" bayrağını dik.
     x->done++;
 
-    // 3. UYANDIR (Wake Up)
+    // 3. Wake Up
     // Bekleme kuyruğundaki İLK kişiyi bul ve uyandır.
     // Bu işlem, o process'i tekrar CPU'nun "Run Queue"suna koyar.
     __wake_up_locked(&x->wait, TASK_NORMAL, 1);
@@ -283,22 +280,7 @@ void complete(struct completion *x)
     spin_unlock_irqrestore(&x->wait.lock, flags);
 }
 ```
-
-## C. Kritik Uyarılar (Best Practices) ⚠️
-
-Sistemi çökertmemek ve mantık hataları yapmamak için şu 3 kurala mutlaka uyun:
-
-### 1. ASLA Interrupt İçinde Bekleme Yapma 🚫
-* **Kural:** `wait_for_completion` kodu uyutur (`schedule`).
-* **Sebep:** Interrupt Handler (IRQ) veya Spinlock tutan kod **asla uyuyamaz**.
-* **Sonuç:** Yaparsanız sistem anında çöker (**Kernel Panic**).
-
-### 2. Sonsuz Bekleyişten Kaçın (Timeout Kullan) ⏳
-* **Kural:** Her zaman **`wait_for_completion_timeout`** kullanın.
-* **Sebep:** Donanım bozulabilir veya cevap vermeyebilir.
-* **Sonuç:** Timeout kullanmazsanız o process sonsuza kadar asılı kalır ve öldürülemez (Zombie Task).
-
-### 3. Tekrar Kullanımda "Re-Init" Şarttır 🔄
-* **Kural:** Döngüsel işlemlerde her turdan önce **`reinit_completion()`** yapın.
-* **Sebep:** Completion tek atımlıktır. `done` bayrağı bir kere arttığında, manuel sıfırlanmazsa hep "bitmiş" görünür.
-* **Sonuç:** Sıfırlamazsanız kod bekleme yapmadan geçer, veri bozulur veya işlem hatalı çalışır.
+### C. Kritik Uyarılar (Best Practices) ⚠️
+1.  **IRQ İçinde Bekleme Yapma 🚫:** `wait_for_completion` kodu uyutur. Interrupt içinde uyumak yasaktır, sistemi anında çökertir (Kernel Panic).
+2.  **Timeout Kullan ⏳:** Sonsuza kadar beklemek risklidir. Donanım bozulursa process asılı kalır. Her zaman `_timeout` varyantını kullanın.
+3.  **Re-Init Şarttır 🔄:** Completion tek kullanımlıktır. Döngü içinde tekrar kullanmadan önce `reinit_completion()` yapmazsanız kod beklemeden geçer.
