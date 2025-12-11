@@ -283,3 +283,22 @@ void complete(struct completion *x)
     spin_unlock_irqrestore(&x->wait.lock, flags);
 }
 ```
+
+## C. Kritik Uyarılar (Best Practices) ⚠️
+
+Sistemi çökertmemek ve mantık hataları yapmamak için şu 3 kurala mutlaka uyun:
+
+### 1. ASLA Interrupt İçinde Bekleme Yapma 🚫
+* **Kural:** `wait_for_completion` kodu uyutur (`schedule`).
+* **Sebep:** Interrupt Handler (IRQ) veya Spinlock tutan kod **asla uyuyamaz**.
+* **Sonuç:** Yaparsanız sistem anında çöker (**Kernel Panic**).
+
+### 2. Sonsuz Bekleyişten Kaçın (Timeout Kullan) ⏳
+* **Kural:** Her zaman **`wait_for_completion_timeout`** kullanın.
+* **Sebep:** Donanım bozulabilir veya cevap vermeyebilir.
+* **Sonuç:** Timeout kullanmazsanız o process sonsuza kadar asılı kalır ve öldürülemez (Zombie Task).
+
+### 3. Tekrar Kullanımda "Re-Init" Şarttır 🔄
+* **Kural:** Döngüsel işlemlerde her turdan önce **`reinit_completion()`** yapın.
+* **Sebep:** Completion tek atımlıktır. `done` bayrağı bir kere arttığında, manuel sıfırlanmazsa hep "bitmiş" görünür.
+* **Sonuç:** Sıfırlamazsanız kod bekleme yapmadan geçer, veri bozulur veya işlem hatalı çalışır.
