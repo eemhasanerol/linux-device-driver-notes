@@ -90,6 +90,8 @@ Hafıza Bölgesi: Heap (kmalloc ile ayrılan alan).
 
 Ömür: Cihaz takıldığında (probe) başlar, çıkarıldığında (remove) biter.
 
+```c
+
 struct my_device_data {
     int id;
     struct completion op_done; // Her cihazın kendi özel bayrağı
@@ -107,6 +109,7 @@ static int my_probe(struct platform_device *pdev)
 
     return 0;
 }
+```
 C. Stack Üzerinde Tanımlama (Fonksiyon İçi - Yerel)
 Mantık: "Bu çok kısa bir iş. Fonksiyonun içinde birini bekleyeceğim, iş bitince de bu değişkenle işim kalmayacak, hemen silinsin."
 
@@ -118,6 +121,7 @@ Hafıza Bölgesi: Stack (Yığın).
 
 ⚠️ KRİTİK TEHLİKE: Eğer donanım işini bitirmeden (complete çağırmadan) bu fonksiyon return ederse, değişken hafızadan silinir. Donanım daha sonra silinmiş hafızaya yazmaya çalışırsa Kernel Panic oluşur. Bu yüzden _ONSTACK makrosu ile sisteme haber vermek zorunludur.
 
+```c
 void my_temp_function(void)
 {
     // Stack üzerinde geçici tanımlama
@@ -131,4 +135,5 @@ void my_temp_function(void)
     
     // Fonksiyon bitince "gecici_comp" yok olur.
 }
+```
 
