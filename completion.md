@@ -41,3 +41,18 @@ struct completion {
     unsigned int done;      // İş bitti mi bayrağı (0: Bitmedi, >0: Bitti)
     wait_queue_head_t wait; // Bekleyenlerin uyuduğu kuyruk
 };
+```
+### Çalışma Süreci (Workflow)
+
+Sistem döngüsü şu 3 temel adımda işler:
+
+1.  **Wait (Bekleme):**
+    `wait_for_completion` çağıran thread, `wait_queue` (bekleme kuyruğu) listesine eklenir ve işlemci tarafından **uyutulur** (Context Switch -> Sleep).
+
+2.  **Done (Kontrol):**
+    `struct completion` yapısındaki `done` bayrağı kontrol edilir.
+    * Eğer `done == 0`: İş bitmemiştir, uyumaya devam eder.
+    * Eğer `done > 0`: İş bitmiştir, beklemeden devam eder.
+
+3.  **Signal (Sinyal/Uyandırma):**
+    İş bittiğinde (`complete()` çağrıldığında), `done` bayrağı arttırılır (`done++`) ve kuyrukta uyuyan thread **uyandırılır** (Wake Up -> Task Running).
