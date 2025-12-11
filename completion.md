@@ -192,3 +192,92 @@ if (try_wait_for_completion(&dev->done)) {
 C// Sadece durumu kontrol eder, hiçbir şeyi değiştirmez (done değerine dokunmaz).
 bool bitti_mi = completion_done(&dev->done);
 ```
+
+## 6. Derinlemesine Analiz: Kaputun Altında Ne Oluyor? (Under the Hood)
+
+Biz `wait_for_completion` çağırdığımızda kodun "sihirli bir şekilde" durduğunu görüyoruz. Peki, Kernel arka planda bunu fiziksel olarak nasıl yapıyor?
+
+Bu mekanizma, **Wait Queue (Bekleme Kuyruğu)** ve **Scheduler (Zamanlayıcı)** arasındaki danstır.
+
+### A. wait_for_completion() İçinde Ne Var?
+
+Bu fonksiyon aslında **akıllı bir döngüdür**. İşlemciyi yoran `while(1)` yerine, işlemciyi bırakan `schedule()` fonksiyonunu kullanır.
+
+Sadeleştirilmiş (Pseudo) algoritma şöyledir:
+
+```c
+void wait_for_completion(struct completion *x)
+{
+    // 1. KENDİNİ TANIT
+    // "current" = Şu an çalışan process (Bizim kodumuz).
+    // Kendimizi bir "bekleyen" (waiter) olarak paketliyoruz.
+    DECLARE_WAITQUEUE(wait, current);
+
+    // 2. KUYRUĞA GİR
+    // Completion nesnesinin bekleme listesine adımızı yazdırıyoruz.
+    // Böylece complete() çağrılınca bizi bulabilecekler.
+    add_wait_queue_exclusive(&x->wait, &wait);
+
+    // 3. DÖNGÜYE GİR (Sinyal gelene kadar)
+    for (;;) 
+    {
+        // 4. KONTROL: İş bitmiş mi?
+        // Eğer done > 0 ise, birisi complete() demiş demektir.
+        if (x->done > 0) {
+            x->done--; // Bileti kullandık, sayıyı azalt.
+            break;     // Döngüden çık, yoluna devam et!
+        }
+
+        // 5. UYKU MODUNA GEÇ
+        // Kernel'e diyoruz ki: "Beni artık 'Çalışanlar' listesinden çıkar."
+        // "Beni 'Dürtülemez Uyuyanlar' (Uninterruptible) listesine al."
+        __set_current_state(TASK_UNINTERRUPTIBLE);
+
+        // 6. İŞLEMCİYİ BIRAK (EN KRİTİK NOKTA)
+        // Bu fonksiyon çağrıldığı an, CPU bizim kodumuzdan ÇIKAR.
+        // Başka bir programa (Wifi, Müzik, vs.) geçer.
+        // -------------------------------------------------------
+        // FİZİKSEL OLARAK BURADA DONARIZ.
+        // -------------------------------------------------------
+        schedule(); 
+        
+        // 7. UYANIŞ
+        // Biri bizi complete() ile uyandırdığında,
+        // kod TAM BURADAN çalışmaya devam eder ve döngünün başına döner.
+    }
+
+    // 8. TEMİZLİK
+    // Kuyruktan adımızı siliyoruz.
+    remove_wait_queue(&x->wait, &wait);
+    
+    // 9. NORMAL MODA DÖN
+    __set_current_state(TASK_RUNNING);
+}
+```
+
+### B. complete() İçinde Ne Var?
+Bu fonksiyonun görevi basittir: Birini uyandırmak.
+
+
+```c
+void complete(struct completion *x)
+{
+    unsigned long flags;
+
+    // 1. KİLİTLE (Spinlock)
+    // Listeye aynı anda başkası dokunmasın diye korumaya al.
+    spin_lock_irqsave(&x->wait.lock, flags);
+
+    // 2. SAYACI ARTIR
+    // "İş bitti" bayrağını dik.
+    x->done++;
+
+    // 3. UYANDIR (Wake Up)
+    // Bekleme kuyruğundaki İLK kişiyi bul ve uyandır.
+    // Bu işlem, o process'i tekrar CPU'nun "Run Queue"suna koyar.
+    __wake_up_locked(&x->wait, TASK_NORMAL, 1);
+
+    // 4. KİLİDİ AÇ
+    spin_unlock_irqrestore(&x->wait.lock, flags);
+}
+```
